@@ -89,7 +89,7 @@ type MONITORINFOEX struct {
 func drawRubberband(hdc winapi.HDC, newRect *winapi.RECT, erase bool) {
 
 	if firstDraw {
-		// レイヤーウィンドウを表示
+		// 显示层窗口
 		winapi.ShowWindow(hLayerWnd, winapi.SW_SHOW)
 		winapi.UpdateWindow(hLayerWnd)
 
@@ -97,12 +97,12 @@ func drawRubberband(hdc winapi.HDC, newRect *winapi.RECT, erase bool) {
 	}
 
 	if erase {
-		// レイヤーウィンドウを隠す
+		// 隐藏层窗口
 		winapi.ShowWindow(hLayerWnd, winapi.SW_HIDE)
 
 	}
 
-	// 座標チェック
+	// 坐标检查
 	clipRect = *newRect
 	if clipRect.Right < clipRect.Left {
 		clipRect.Left, clipRect.Right = clipRect.Right, clipRect.Left
@@ -126,14 +126,14 @@ func savePNG(fileName string, newBMP winapi.HBITMAP) error {
 	var gdiplusStartupInput winapi.GdiplusStartupInput
 	var gdiplusToken winapi.GdiplusStartupOutput
 
-	// GDI+ の初期化
+	// 初始化GDI+
 	gdiplusStartupInput.GdiplusVersion = 1
 	if winapi.GdiplusStartup(&gdiplusStartupInput, &gdiplusToken) != 0 {
 		return fmt.Errorf("failed to initialize GDI+")
 	}
 	defer winapi.GdiplusShutdown()
 
-	// HBITMAP から Bitmap を作成
+	// 从HBITMAP创建Bitmap
 	var bmp *winapi.GpBitmap
 	if winapi.GdipCreateBitmapFromHBITMAP(newBMP, 0, &bmp) != 0 {
 		return fmt.Errorf("failed to create HBITMAP")
@@ -275,12 +275,12 @@ func WndProc(hWnd winapi.HWND, message uint32, wParam uintptr, lParam uintptr) u
 
 	switch message {
 	case winapi.WM_RBUTTONDOWN:
-		// キャンセル
+		// 取消
 		winapi.DestroyWindow(hWnd)
 		return winapi.DefWindowProc(hWnd, message, wParam, lParam)
 
 	case winapi.WM_TIMER:
-		// ESCキー押下の検知
+		// ESC键按下的检测
 		if int(winapi.GetKeyState(winapi.VK_ESCAPE))&0x8000 != 0 {
 			winapi.DestroyWindow(hWnd)
 			return winapi.DefWindowProc(hWnd, message, wParam, lParam)
@@ -289,7 +289,7 @@ func WndProc(hWnd winapi.HWND, message uint32, wParam uintptr, lParam uintptr) u
 
 	case winapi.WM_MOUSEMOVE:
 		if onClip {
-			// 新しい座標をセット
+			// 设置新坐标
 			clipRect.Right = int32(winapi.LOWORD(uint32(lParam))) + ofX
 			clipRect.Bottom = int32(winapi.HIWORD(uint32(lParam))) + ofY
 
@@ -302,30 +302,30 @@ func WndProc(hWnd winapi.HWND, message uint32, wParam uintptr, lParam uintptr) u
 
 	case winapi.WM_LBUTTONDOWN:
 		{
-			// クリップ開始
+			// 剪辑开始
 			onClip = true
 
-			// 初期位置をセット
+			// 设置初始位置
 			clipRect.Left = int32(winapi.LOWORD(uint32(lParam))) + ofX
 			clipRect.Top = int32(winapi.HIWORD(uint32(lParam))) + ofY
 
-			// マウスをキャプチャ
+			// 捕捉鼠标
 			winapi.SetCapture(hWnd)
 		}
 		break
 
 	case winapi.WM_LBUTTONUP:
 		{
-			// クリップ終了
+			// 剪辑结束
 			onClip = false
 
-			// マウスのキャプチャを解除
+			// 取消鼠标捕捉
 			winapi.ReleaseCapture()
 
 			clipRect.Right = int32(winapi.LOWORD(uint32(lParam))) + ofX
 
 			clipRect.Bottom = int32(winapi.HIWORD(uint32(lParam))) + ofY
-			// 座標チェック
+			// 坐标检查
 			if clipRect.Right < clipRect.Left {
 				clipRect.Left, clipRect.Right = clipRect.Right, clipRect.Left
 			}
@@ -346,15 +346,15 @@ func WndProc(hWnd winapi.HWND, message uint32, wParam uintptr, lParam uintptr) u
 
 			hdc := winapi.GetDC(0)
 
-			// 線を消す
+			// 删除线条
 			drawRubberband(hdc, &clipRect, true)
 
-			// 画像のキャプチャ
+			// 图像捕获
 			iWidth := (clipRect.Right - clipRect.Left + 1)
 			iHeight := (clipRect.Bottom - clipRect.Top + 1)
 
 			if iWidth == 0 || iHeight == 0 {
-				// 画像になってない, なにもしない
+				// 没有画像，什么也不做
 				winapi.ReleaseDC(0, hdc)
 				winapi.DestroyWindow(hWnd)
 				break
@@ -371,11 +371,11 @@ func WndProc(hWnd winapi.HWND, message uint32, wParam uintptr, lParam uintptr) u
 			bmpinfo.BmiHeader.BiBitCount = 32
 			bmpinfo.BmiHeader.BiCompression = winapi.BI_RGB
 
-			// ビットマップバッファを作成
+			// 创建位图缓冲区
 			newBMP := winapi.CreateDIBSection(hdc, &bmpinfo.BmiHeader, winapi.DIB_RGB_COLORS, nil, 0, 0)
 			newDC := winapi.CreateCompatibleDC(hdc)
 
-			// 関連づけ
+			// 关联
 			winapi.SelectObject(newDC, winapi.HGDIOBJ(newBMP))
 
 			var imageRect winapi.RECT
@@ -384,19 +384,19 @@ func WndProc(hWnd winapi.HWND, message uint32, wParam uintptr, lParam uintptr) u
 			imageRect.Top = int32(float64(clipRect.Top) * dy)
 			imageRect.Bottom = int32(float64(clipRect.Bottom) * dy)
 
-			// 画像を取得
+			// 获取图像
 			winapi.BitBlt(newDC, 0, 0, dWidth, dHeight, hdc, imageRect.Left, imageRect.Top, winapi.SRCCOPY)
 
-			// ウィンドウを隠す!
+			// 隐藏窗口！
 			winapi.ShowWindow(hWnd, winapi.SW_HIDE)
 
-			// テンポラリファイル名を決定
+			// 确定临时文件名
 			tmpFile, _ := ioutil.TempFile("", "gya")
 			tmpFile.Close()
 			fileName := tmpFile.Name()
 
 			if err := savePNG(fileName, winapi.HBITMAP(newBMP)); err != nil {
-				// PNG保存失敗...
+				// PNG保存失败。。。
 				messageBox(hWnd, fmt.Sprintf("Cannot save image file: %v", err.Error()))
 			} else {
 				postUrl, err := uploadFile(hWnd, fileName)
@@ -410,7 +410,7 @@ func WndProc(hWnd winapi.HWND, message uint32, wParam uintptr, lParam uintptr) u
 				}
 			}
 
-			// 後始末
+			// 善后处理
 			os.Remove(fileName)
 
 			winapi.DeleteDC(newDC)
@@ -457,22 +457,22 @@ func LayerWndProc(hWnd winapi.HWND, message uint32, wParam uintptr, lParam uintp
 
 		fontnm, _ := syscall.UTF16PtrFromString("Tahoma")
 
-		//矩形のサイズを出力
+		//输出矩形大小
 		fHeight := -winapi.MulDiv(8, winapi.GetDeviceCaps(hdc, winapi.LOGPIXELSY), 72)
-		hFont = winapi.CreateFont(fHeight, //フォント高さ
-			0,                                   //文字幅
-			0,                                   //テキストの角度
-			0,                                   //ベースラインとｘ軸との角度
-			winapi.FW_REGULAR,                   //フォントの重さ（太さ）
-			0,                                   //イタリック体
-			0,                                   //アンダーライン
-			0,                                   //打ち消し線
-			winapi.ANSI_CHARSET,                 //文字セット
-			winapi.OUT_DEFAULT_PRECIS,           //出力精度
-			winapi.CLIP_DEFAULT_PRECIS,          //クリッピング精度
-			winapi.PROOF_QUALITY,                //出力品質
-			winapi.FIXED_PITCH|winapi.FF_MODERN, //ピッチとファミリー
-			fontnm)                              //書体名
+		hFont = winapi.CreateFont(fHeight, 	     // 字体高度
+			0,                                   // 字符宽度
+			0,                                   // 文本角度
+			0,                                   // 基线与x轴的角度
+			winapi.FW_REGULAR,                   // 字体重量（粗细）
+			0,                                   // 斜体
+			0,                                   // 下划线
+			0,                                   // 打ち消し線
+			winapi.ANSI_CHARSET,                 // 字符集
+			winapi.OUT_DEFAULT_PRECIS,           // 输出精度
+			winapi.CLIP_DEFAULT_PRECIS,          // 削波精度
+			winapi.PROOF_QUALITY,                // 输出质量
+			winapi.FIXED_PITCH|winapi.FF_MODERN, // 节距和族
+			fontnm)                              // 字体名称
 
 		winapi.SelectObject(hdc, winapi.HGDIOBJ(hFont))
 
@@ -568,7 +568,7 @@ func InitInstance(hInstance winapi.HINSTANCE, nCmdShow int) bool {
 
 	clazz, _ = syscall.UTF16PtrFromString("GYAZOWINL")
 
-	// レイヤーウィンドウの作成
+	// 创建层窗口
 	hLayerWnd = winapi.CreateWindowEx(
 		winapi.WS_EX_TOOLWINDOW|winapi.WS_EX_LAYERED|winapi.WS_EX_NOACTIVATE,
 		clazz, nil, winapi.WS_POPUP,
